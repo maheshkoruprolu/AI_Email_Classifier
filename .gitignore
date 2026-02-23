@@ -1,0 +1,16 @@
+# Virtual Environment
+venv/
+.env/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Streamlit secrets (NEVER upload this)
+.streamlit/secrets.toml
+
+.ipynb_checkpoints/
+
+environment.yml
+setup_env.sh
