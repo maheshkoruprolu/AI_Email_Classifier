@@ -305,6 +305,37 @@ if 'daily_stats' not in st.session_state:
             data.append({'date': date, 'category': category, 'count': count})
     st.session_state.daily_stats = pd.DataFrame(data)
 
+def calculate_urgency_score(category, email_text):
+    
+    base_scores = {
+        "complaint": 70,
+        "support": 70,
+        "feedback": 40,
+        "spam": 10,
+        "others": 10
+    }
+    
+   
+    urgent_keywords = ["urgent", "asap", "immediate", "broken", "escalate", "critical", "fail", "issue"]
+    
+    
+    score = base_scores.get(category.lower().strip(), 10)
+    
+    
+    email_text_lower = email_text.lower()
+    keyword_count = sum(1 for word in urgent_keywords if word in email_text_lower)
+    
+    
+    if keyword_count > 3:
+        score += 25 
+    elif keyword_count > 0:
+        score += 10
+        
+   
+    return min(score, 100)
+
+
+
 # Sidebar
 with st.sidebar:
     st.markdown("### 🎯 Navigation")
@@ -336,14 +367,14 @@ with st.sidebar:
     else:
         st.error("❌ Model Not Loaded")
     
-
+    
 
 # Main content
 if page == "🏠 Dashboard":
     st.title("Email Classification Dashboard")
     st.markdown("### Real-time insights powered by AI")
     
-    # Metrics row
+    
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -374,7 +405,7 @@ if page == "🏠 Dashboard":
     
     st.divider()
     
-    # Charts
+   
     col1, col2 = st.columns(2)
     
     with col1:
@@ -454,6 +485,8 @@ if page == "🏠 Dashboard":
                     st.caption(f"From: {row['sender']}")
                 with col2:
                     st.markdown(f"{CATEGORY_INFO[row['category']]['emoji']} **{row['category'].title()}**")
+                    if 'urgency' in row:
+                        st.caption(f"🚨 Urgency: {row['urgency']}/100")
                 with col3:
                     st.markdown(f"🎯 **{row['confidence']*100:.1f}%** confidence")
                 with col4:
@@ -524,6 +557,7 @@ elif page == "📧 Classify Email":
 
             with st.spinner("🔍 Analyzing email..."):
                 prediction, confidence, keywords = classify_email(st.session_state.email_text)
+                urgency_score = calculate_urgency_score(prediction, st.session_state.email_text)
 
             if prediction:
                 st.session_state.email_history.append({
@@ -532,7 +566,8 @@ elif page == "📧 Classify Email":
                     'category': prediction,
                     'confidence': confidence,
                     'timestamp': datetime.now(),
-                    'keywords': keywords
+                    'keywords': keywords,
+                    'urgency': urgency_score
                 })
 
                 st.success("✅ Email Successfully Classified!")
@@ -541,6 +576,9 @@ elif page == "📧 Classify Email":
                 <div class="prediction-box">
                     <h2 style="color: white; margin-top: 0;">
                         {CATEGORY_INFO[prediction]['emoji']} {prediction.upper()}
+                        <span style="font-size: 0.6em; background: rgba(255,255,255,0.25); padding: 5px 15px; border-radius: 20px;">
+                            🚨 Urgency: {urgency_score}/100
+                        </span>
                     </h2>
                     <h3 style="color: white;">
                         Confidence: {confidence*100:.2f}%
